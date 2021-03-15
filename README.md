@@ -1,4 +1,4 @@
-TSP
+TSP - Traveling Salesman Problem
 
 Implementação de duas Heurísticas para o problema do Caixeiro Viajante:
 
