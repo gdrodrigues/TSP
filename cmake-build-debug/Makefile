@@ -143,6 +143,33 @@ TSP/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/TSP.dir/build.make CMakeFiles/TSP.dir/build
 .PHONY : TSP/fast
 
+linkedList.o: linkedList.c.o
+
+.PHONY : linkedList.o
+
+# target to build an object file
+linkedList.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/TSP.dir/build.make CMakeFiles/TSP.dir/linkedList.c.o
+.PHONY : linkedList.c.o
+
+linkedList.i: linkedList.c.i
+
+.PHONY : linkedList.i
+
+# target to preprocess a source file
+linkedList.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/TSP.dir/build.make CMakeFiles/TSP.dir/linkedList.c.i
+.PHONY : linkedList.c.i
+
+linkedList.s: linkedList.c.s
+
+.PHONY : linkedList.s
+
+# target to generate assembly for a file
+linkedList.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/TSP.dir/build.make CMakeFiles/TSP.dir/linkedList.c.s
+.PHONY : linkedList.c.s
+
 main.o: main.c.o
 
 .PHONY : main.o
@@ -179,6 +206,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... TSP"
+	@echo "... linkedList.o"
+	@echo "... linkedList.i"
+	@echo "... linkedList.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

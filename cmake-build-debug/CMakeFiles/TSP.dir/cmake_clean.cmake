@@ -1,4 +1,5 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/TSP.dir/linkedList.c.o"
   "CMakeFiles/TSP.dir/main.c.o"
   "TSP"
   "TSP.pdb"

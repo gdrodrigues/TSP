@@ -3,9 +3,10 @@
 #include <math.h>
 #include <string.h>
 #include <ctype.h>
+#include "linkedList.c"
 
 #define NLINHAS 280
-#define NCOLUNAS 3
+#define NCOLUNAS 2
 #define NINT(a) ((a) >= 0.0 ? (int)((a)+0.5) : (int)((a)-0.5))
 double euclidianDistance();
 int numeroArestas(int numNos);
@@ -73,9 +74,7 @@ double **LeArquivo(char filename[]){
 
     matriz = AlocaMatriz(NLINHAS, NCOLUNAS);
     while(fgets(linha, sizeof(linha), fp) != NULL) {
-        printf("cheguei aqui no loop\n");
-        printf("%s", linha);
-        printf("contador: %d\n", contador);
+        /*
         if(contador == 3){
             char* dimension1 = strtok(linha, " ");
             int dimension;
@@ -85,9 +84,9 @@ double **LeArquivo(char filename[]){
                     dimension = atoi(dimension1);
                 }
             }
-            printf("dimensao: %d \n", dimension);
         }
-        else if(contador > 5 && strcmp(linha, "EOF")!=0){
+        */
+        if(contador > 5 && strcmp(linha, "EOF")!=0){
 
             char* util = strstrip(strtok(linha, " "));
             double no = atof(util);
@@ -106,10 +105,8 @@ double **LeArquivo(char filename[]){
                     break;
                 }
             }
-            printf("no %f coord1:%f e coord2:%f \n", no, coord1, coord2);
-            matriz[nLinha][0] = no;
-            matriz[nLinha][1] = coord1;
-            matriz[nLinha][2] = coord2;
+            matriz[nLinha][0] = coord1;
+            matriz[nLinha][1] = coord2;
             nLinha = nLinha + 1;
 
         }
@@ -124,29 +121,84 @@ double **LeArquivo(char filename[]){
 
 }
 
-double euclidianDistance (){
-    double xd = 288.0 - 270.0;
-    double yd = 149.0 - 133.0;
+double euclidianDistance (int no1, int no2, double ** matrizDeCoordenadas){
+    double xd = matrizDeCoordenadas[no1-1][0] - matrizDeCoordenadas[no1-1][1];
+    double yd = matrizDeCoordenadas[no2-1][0] - matrizDeCoordenadas[no2-1][1];
     double dij = NINT(sqrt(xd*xd + yd*yd));
     return dij;
 }
 
+
+int * TSPVMP(double ** matrizDeCoordenadas, struct node *listOfNodes){
+    int* rota = (int *)malloc(NLINHAS * sizeof(int));
+    int indexRota = 0;
+
+    int noAtual = ((rand() % NLINHAS -1 )+1);
+    int noMenorRota;
+    double custoTotal = 0;
+
+    rota[indexRota] = noAtual;
+    indexRota = indexRota + 1;
+    delete(&listOfNodes, noAtual);
+
+
+    //printf("Tamanho da lista é: %d", length(&listOfNodes));
+    while(length(&listOfNodes) != 0){ //Enquanto lista de nós não for vazia
+        double menorCusto = 100000000;
+        struct node *listCopy = listOfNodes;
+        //printf("Lista:\n");
+        //printList(&listOfNodes);
+        while (listCopy != NULL){
+            //printf("item da lista: %d\n", listOfNodes->data);
+            if(euclidianDistance(noAtual, listCopy->data, matrizDeCoordenadas) < menorCusto){
+                //printf("to calculando");
+                menorCusto = euclidianDistance(noAtual, listCopy->data, matrizDeCoordenadas);
+                noMenorRota = listCopy->data;
+            }
+            listCopy = listCopy->next;
+        }
+        custoTotal = custoTotal + menorCusto;
+        rota[indexRota] = noMenorRota;
+        indexRota = indexRota + 1;
+        noAtual = noMenorRota;
+        delete(&listOfNodes, noAtual);
+        //printList(&listOfNodes);
+    }
+    custoTotal = custoTotal + euclidianDistance(rota[0],noAtual,matrizDeCoordenadas);
+    printf("O custo total foi de: %f\n", custoTotal);
+    return rota;
+    
+}
+
+
+int main() {
+    int i,j;
+    int* rotaVMP = (int *)malloc(NLINHAS * sizeof(int));
+
+    double ** matrizDeCoordenadas;
+    matrizDeCoordenadas = LeArquivo("/Users/gabrielduarte/CLionProjects/TSP/a280.tsp");
+
+    struct node *listOfNodes = NULL;
+    for(i=NLINHAS; i > 0; i--){
+        insertFirst(&listOfNodes, i);
+    }
+
+    rotaVMP = TSPVMP(matrizDeCoordenadas, listOfNodes);
+    printf("Rota TSP:");
+    printf("\n[ ");
+    for(j=0; j<NLINHAS; j++){
+        printf("(%d) ",rotaVMP[j]);
+    }
+    printf("]\n");
+
+
+    LiberaMatriz(matrizDeCoordenadas, NLINHAS);
+    free(rotaVMP);
+    return 0;
+}
+
+/* Usado para calcular o número de arestras de um grafo dado o n de nós
 int numeroArestas(int numNos){
     return (numNos* (numNos - 1)/2);
 }
-
-int main() {
-
-    double ** matriz;
-
-    matriz = LeArquivo("/Users/gabrielduarte/CLionProjects/TSP/a280.tsp");
-
-    /*
-    double distance = euclidianDistance();
-    printf("a distancia euclidiana entre 1 e 2 é: %f\n", distance);
-    int arestas = numeroArestas(1748);
-    printf("o numero de arestas de um grafo com x nós é: %d\n", arestas);
-    */
-    LiberaMatriz(matriz, NLINHAS);
-    return 0;
-}
+*/

@@ -78,6 +78,9 @@
 				</MakeCommands>
 			</Target>
 		</Build>
+		<Unit filename="/Users/gabrielduarte/CLionProjects/TSP/linkedList.c">
+			<Option target="TSP"/>
+		</Unit>
 		<Unit filename="/Users/gabrielduarte/CLionProjects/TSP/main.c">
 			<Option target="TSP"/>
 		</Unit>
