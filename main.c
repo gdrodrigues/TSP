@@ -3,9 +3,11 @@
 #include <math.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
+#include <sys/resource.h>
 #include "linkedList.c"
 
-#define NLINHAS 280
+#define NLINHAS 1748
 #define NCOLUNAS 2
 #define NINT(a) ((a) >= 0.0 ? (int)((a)+0.5) : (int)((a)-0.5))
 double euclidianDistance();
@@ -33,17 +35,17 @@ char *strstrip(char *s)
     return s;
 }
 
-double **AlocaMatriz(int m, int n){
-    double **M;
+float **AlocaMatriz(int m, int n){
+    float **M;
     int i;
 
-    M = (double **)malloc(m * sizeof(double *));
+    M = (float **)malloc(m * sizeof(float *));
     if(M == NULL){
         printf("Memoria insuficiente.\n");
         exit(1);
     }
     for(i = 0; i < m; i++){
-        M[i] = (double *)malloc(n * sizeof(double));
+        M[i] = (float *)malloc(n * sizeof(float));
         if(M[i] == NULL){
             printf("Memoria insuficiente.\n");
             exit(1);
@@ -52,15 +54,15 @@ double **AlocaMatriz(int m, int n){
     return M;
 }
 
-void LiberaMatriz(double **M, int m){ // m linhas
+void LiberaMatriz(float **M, int m){ // m linhas
     int i;
     for(i = 0; i < m; i++)
         free(M[i]);
     free(M);
 }
 
-double **LeArquivo(char filename[]){
-    double **matriz;
+float **LeArquivo(char filename[]){
+    float **matriz;
     FILE *fp;
     int nLinha = 0;
     int contador = 0;
@@ -74,6 +76,7 @@ double **LeArquivo(char filename[]){
 
     matriz = AlocaMatriz(NLINHAS, NCOLUNAS);
     while(fgets(linha, sizeof(linha), fp) != NULL) {
+        //printf("%s\n", linha);
         /*
         if(contador == 3){
             char* dimension1 = strtok(linha, " ");
@@ -89,9 +92,9 @@ double **LeArquivo(char filename[]){
         if(contador > 5 && strcmp(linha, "EOF")!=0){
 
             char* util = strstrip(strtok(linha, " "));
-            double no = atof(util);
-            double coord1;
-            double coord2;
+            float no = atof(util);
+            float coord1;
+            float coord2;
             int cont=1;
             while(util != NULL){
                 if(cont==1){
@@ -105,6 +108,7 @@ double **LeArquivo(char filename[]){
                     break;
                 }
             }
+            //printf("coord 1: %f e coord 2: %f\n", coord1, coord2);
             matriz[nLinha][0] = coord1;
             matriz[nLinha][1] = coord2;
             nLinha = nLinha + 1;
@@ -121,18 +125,18 @@ double **LeArquivo(char filename[]){
 
 }
 
-double euclidianDistance (int no1, int no2, double ** matrizDeCoordenadas){
+double euclidianDistance (int no1, int no2, float ** matrizDeCoordenadas){
     double xd = matrizDeCoordenadas[no1-1][0] - matrizDeCoordenadas[no1-1][1];
     double yd = matrizDeCoordenadas[no2-1][0] - matrizDeCoordenadas[no2-1][1];
     double dij = NINT(sqrt(xd*xd + yd*yd));
     return dij;
 }
 
-
-int * TSPVMP(double ** matrizDeCoordenadas, struct node *listOfNodes){
+// Utilizacao de LinkedList para controle da lista de Nós (muitas operacoes de remocao de um elemento).
+int * TSPVMP(float ** matrizDeCoordenadas, struct node *listOfNodes){
     int* rota = (int *)malloc(NLINHAS * sizeof(int));
     int indexRota = 0;
-
+    srand(time(NULL));
     int noAtual = ((rand() % NLINHAS -1 )+1);
     int noMenorRota;
     double custoTotal = 0;
@@ -141,17 +145,11 @@ int * TSPVMP(double ** matrizDeCoordenadas, struct node *listOfNodes){
     indexRota = indexRota + 1;
     delete(&listOfNodes, noAtual);
 
-
-    //printf("Tamanho da lista é: %d", length(&listOfNodes));
-    while(length(&listOfNodes) != 0){ //Enquanto lista de nós não for vazia
+    while(length(&listOfNodes) != 0){
         double menorCusto = 100000000;
         struct node *listCopy = listOfNodes;
-        //printf("Lista:\n");
-        //printList(&listOfNodes);
         while (listCopy != NULL){
-            //printf("item da lista: %d\n", listOfNodes->data);
             if(euclidianDistance(noAtual, listCopy->data, matrizDeCoordenadas) < menorCusto){
-                //printf("to calculando");
                 menorCusto = euclidianDistance(noAtual, listCopy->data, matrizDeCoordenadas);
                 noMenorRota = listCopy->data;
             }
@@ -162,28 +160,51 @@ int * TSPVMP(double ** matrizDeCoordenadas, struct node *listOfNodes){
         indexRota = indexRota + 1;
         noAtual = noMenorRota;
         delete(&listOfNodes, noAtual);
-        //printList(&listOfNodes);
     }
     custoTotal = custoTotal + euclidianDistance(rota[0],noAtual,matrizDeCoordenadas);
-    printf("O custo total foi de: %f\n", custoTotal);
+    printf("O custo total pelo Vizinho + proximo foi de: %f\n", custoTotal);
     return rota;
     
+}
+
+void Tempo_CPU_Sistema(double *seg_CPU_total, double *seg_sistema_total)
+{
+    long seg_CPU, seg_sistema, mseg_CPU, mseg_sistema;
+    struct rusage ptempo;
+
+    getrusage(0,&ptempo);
+
+    seg_CPU = ptempo.ru_utime.tv_sec;
+    mseg_CPU = ptempo.ru_utime.tv_usec;
+    seg_sistema = ptempo.ru_stime.tv_sec;
+    mseg_sistema = ptempo.ru_stime.tv_usec;
+
+    *seg_CPU_total     = (seg_CPU + 0.000001 * mseg_CPU);
+    *seg_sistema_total = (seg_sistema + 0.000001 * mseg_sistema);
 }
 
 
 int main() {
     int i,j;
-    int* rotaVMP = (int *)malloc(NLINHAS * sizeof(int));
+    int* rotaVMP;
+    double s_CPU_final;
+    double s_CPU_inicial;
+    double s_total_inicial;
+    double s_total_final;
 
-    double ** matrizDeCoordenadas;
-    matrizDeCoordenadas = LeArquivo("/Users/gabrielduarte/CLionProjects/TSP/a280.tsp");
+    float ** matrizDeCoordenadas;
+    matrizDeCoordenadas = LeArquivo("/Users/gabrielduarte/CLionProjects/TSP/instanciasTSP/vm1748.tsp");
 
     struct node *listOfNodes = NULL;
     for(i=NLINHAS; i > 0; i--){
         insertFirst(&listOfNodes, i);
     }
-
+    Tempo_CPU_Sistema(&s_CPU_inicial, &s_total_inicial);
     rotaVMP = TSPVMP(matrizDeCoordenadas, listOfNodes);
+    Tempo_CPU_Sistema(&s_CPU_final, &s_total_final);
+
+    printf ("Tempo de CPU total = %f\n", s_CPU_final - s_CPU_inicial);
+
     printf("Rota TSP:");
     printf("\n[ ");
     for(j=0; j<NLINHAS; j++){
@@ -193,7 +214,6 @@ int main() {
 
 
     LiberaMatriz(matrizDeCoordenadas, NLINHAS);
-    free(rotaVMP);
     return 0;
 }
 
