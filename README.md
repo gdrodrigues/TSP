@@ -12,6 +12,7 @@ Heurística da Inserção mais barata
 * Arquivos:
 
 main.c: todos os métodos referentes às heurísticas construtivas estudadas e métodos auxiliares
+
 linkedList.c : arquivo definindo estrutura de dados utilizada para construção da solução
 
 * Para executar:
