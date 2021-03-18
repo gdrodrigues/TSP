@@ -6,14 +6,6 @@
 
 #IncludeRegexTransform: 
 
-/Users/gabrielduarte/CLionProjects/TSP/linkedList.c
-stdio.h
--
-string.h
--
-stdlib.h
--
-
 /Users/gabrielduarte/CLionProjects/TSP/main.c
 stdio.h
 -
@@ -25,6 +17,8 @@ string.h
 -
 ctype.h
 -
-linkedList.c
-/Users/gabrielduarte/CLionProjects/TSP/linkedList.c
+time.h
+-
+sys/resource.h
+-
 
