@@ -100,4 +100,3 @@ struct node* delete(struct node** head_ref, int data) {
 
     return current;
 }
-

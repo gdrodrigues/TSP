@@ -6,10 +6,10 @@
 #include <time.h>
 #include <sys/resource.h>
 #include "linkedList.c"
-#define NLINHAS 2152
 #define NCOLUNAS 2
 #define NINT(a) ((a) >= 0.0 ? (int)((a)+0.5) : (int)((a)-0.5))
 double euclidianDistance();
+int nlinhas;
 //int numeroArestas(int numNos);
 // O número de arestas em um grafo completo é n(n-1)/2.
 
@@ -73,10 +73,9 @@ float **LeArquivo(char filename[]){
         exit(EXIT_FAILURE);
     }
 
-    matriz = AlocaMatriz(NLINHAS, NCOLUNAS);
     while(fgets(linha, sizeof(linha), fp) != NULL) {
         //printf("%s\n", linha);
-        /*
+
         if(contador == 3){
             char* dimension1 = strtok(linha, " ");
             int dimension;
@@ -86,8 +85,9 @@ float **LeArquivo(char filename[]){
                     dimension = atoi(dimension1);
                 }
             }
+            nlinhas = dimension;
+            matriz = AlocaMatriz(nlinhas, NCOLUNAS);
         }
-        */
         if(contador > 5 && strcmp(linha, "EOF")!=0){
 
             char* util = strstrip(strtok(linha, " "));
@@ -133,10 +133,10 @@ double euclidianDistance (int no1, int no2, float ** matrizDeCoordenadas){
 
 // Utilizacao de LinkedList para controle da lista de Nós (muitas operacoes de remocao de um elemento).
 int * TSPVMP(float ** matrizDeCoordenadas, struct node *listOfNodes){
-    int* rota = (int *)malloc(NLINHAS * sizeof(int));
+    int* rota = (int *)malloc(nlinhas * sizeof(int));
     int indexRota = 0;
     srand(time(NULL));
-    int noAtual = ((rand() % NLINHAS -1 )+1);
+    int noAtual = ((rand() % nlinhas -1 )+1);
     int noMenorRota;
     double custoTotal = 0;
 
@@ -168,7 +168,7 @@ int * TSPVMP(float ** matrizDeCoordenadas, struct node *listOfNodes){
 
 int * TSPIMP(float  ** matrizDeCoordenadas, struct node *listOfNodes){
 
-    int* rota = (int *)malloc(NLINHAS * sizeof(int));
+    int* rota = (int *)malloc(nlinhas * sizeof(int));
     int indexRota = 0;
     double custoTotal = 0;
     double custoCiclo, custoCiclo2;
@@ -177,7 +177,7 @@ int * TSPIMP(float  ** matrizDeCoordenadas, struct node *listOfNodes){
     int i,j,k, noAtual;
     //Escolhe os 3 nós iniciais da soluçao
     for (i=0; i<3;i++){
-        noAtual = ((rand() % NLINHAS -1 )+1);
+        noAtual = ((rand() % nlinhas -1 )+1);
         if(noAtual ==0){
             noAtual = 1;
         }
@@ -234,6 +234,76 @@ int * TSPIMP(float  ** matrizDeCoordenadas, struct node *listOfNodes){
     return rota;
 }
 
+int * TSPIMP_Randomizado(float ** matrizDeCoordenadas, struct node * listOfNodes){
+    int* rota = (int *)malloc(nlinhas * sizeof(int));
+    int indexRota = 0;
+    double custoTotal = 0;
+    double custoCiclo, custoCiclo2;
+    int posDoNovoNo, noAserInserido, copyElement, copyNoAtual, posRandom;
+    srand(time(NULL));
+    int i,j,k,w,noAtual;
+    //Escolhe os 3 nós iniciais da soluçao
+    for (i=0; i<3;i++){
+        noAtual = ((rand() % nlinhas -1 )+1);
+        if(noAtual ==0){
+            noAtual = 1;
+        }
+        rota[indexRota] = noAtual;
+        indexRota = indexRota + 1;
+        delete(&listOfNodes, noAtual);
+        if(i==1){
+            custoTotal = euclidianDistance(rota[0], rota[1], matrizDeCoordenadas);
+        }
+        else if(i==2){
+            custoTotal = custoTotal + euclidianDistance(rota[1], rota[2], matrizDeCoordenadas);
+            custoTotal = custoTotal + euclidianDistance(rota[2], rota[0], matrizDeCoordenadas);
+        }
+        else{
+            continue;
+        }
+
+    }
+    while(length(&listOfNodes) != 0){
+        custoCiclo = 1000000000;
+        struct node *listCopy = listOfNodes;
+        posRandom = ((rand() % length(&listOfNodes)-1)+1);
+        for(w = 0; w < posRandom; w++){
+            listCopy = listCopy->next;
+        }
+        noAtual = listCopy->data;
+        for(j=0; j<indexRota; j++){
+            if(j < indexRota-1){
+                custoCiclo2 = euclidianDistance(rota[j], noAtual, matrizDeCoordenadas) + euclidianDistance(noAtual, rota[j+1], matrizDeCoordenadas) - euclidianDistance(rota[j], rota[j+1], matrizDeCoordenadas);
+            }
+            else{
+                custoCiclo2 = euclidianDistance(rota[j], noAtual, matrizDeCoordenadas) + euclidianDistance(noAtual, rota[0], matrizDeCoordenadas) - euclidianDistance(rota[j], rota[0], matrizDeCoordenadas);
+            }
+            if(custoCiclo2 < custoCiclo){
+                posDoNovoNo = j+1;
+                custoCiclo = custoCiclo2;
+                noAserInserido = noAtual;
+            }
+        }
+
+        custoTotal = custoTotal+ custoCiclo;
+        copyNoAtual = noAserInserido;
+        for(k=0; k<indexRota+1; k++){
+            if(k >= posDoNovoNo){
+                copyElement = rota[k];
+                rota[k] = copyNoAtual;
+                copyNoAtual = copyElement;
+                if(k==indexRota){
+                    rota[k+1] = copyNoAtual;
+                }
+            }
+        }
+        indexRota = indexRota + 1;
+        delete(&listOfNodes, noAserInserido);
+    }
+    printf("O custo total via Inserção do Mais Barato Randomizado é de: %f\n", custoTotal);
+    return rota;
+}
+
 void Tempo_CPU_Sistema(double *seg_CPU_total, double *seg_sistema_total)
 {
     long seg_CPU, seg_sistema, mseg_CPU, mseg_sistema;
@@ -263,26 +333,27 @@ int main() {
     matrizDeCoordenadas = LeArquivo("/Users/gabrielduarte/CLionProjects/TSP/instanciasTSP/u2152.tsp");
 
     struct node *listOfNodes = NULL;
-    for(i=NLINHAS; i > 0; i--){
+    for(i=nlinhas; i > 0; i--){
         insertFirst(&listOfNodes, i);
     }
 
     Tempo_CPU_Sistema(&s_CPU_inicial, &s_total_inicial);
     //rotaVMP = TSPVMP(matrizDeCoordenadas, listOfNodes);
-    rotaVMP = TSPIMP(matrizDeCoordenadas, listOfNodes);
+    //rotaVMP = TSPIMP(matrizDeCoordenadas, listOfNodes);
+    rotaVMP = TSPIMP_Randomizado(matrizDeCoordenadas, listOfNodes);
     Tempo_CPU_Sistema(&s_CPU_final, &s_total_final);
 
     printf ("Tempo de CPU total = %f\n", s_CPU_final - s_CPU_inicial);
 
     printf("Rota TSP:");
     printf("\n[ ");
-    for(j=0; j<NLINHAS; j++){
+    for(j=0; j<nlinhas; j++){
         printf("(%d) ",rotaVMP[j]);
     }
     printf("]\n");
 
 
-    LiberaMatriz(matrizDeCoordenadas, NLINHAS);
+    LiberaMatriz(matrizDeCoordenadas, nlinhas);
     return 0;
 }
 
