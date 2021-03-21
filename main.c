@@ -8,6 +8,7 @@
 #include "linkedList.c"
 #define NCOLUNAS 2
 #define NINT(a) ((a) >= 0.0 ? (int)((a)+0.5) : (int)((a)-0.5))
+#define ALFA 0.5
 double euclidianDistance();
 int nlinhas;
 //int numeroArestas(int numNos);
@@ -304,6 +305,88 @@ int * TSPIMP_Randomizado(float ** matrizDeCoordenadas, struct node * listOfNodes
     return rota;
 }
 
+struct node* rclSet(float **matrizDeCoordenadas, struct node *listOfNodes, int ultimoNoRota){
+    double cmin=100000000, cmax=-1;
+    struct node * rcl = NULL;
+    struct node * copyOfNodes = listOfNodes;
+    while(copyOfNodes != NULL){ // define o cmin e o cmax
+        if(euclidianDistance(ultimoNoRota, copyOfNodes->data,matrizDeCoordenadas) < cmin){
+            cmin = euclidianDistance(ultimoNoRota, copyOfNodes->data,matrizDeCoordenadas);
+        }
+        if(euclidianDistance(ultimoNoRota, copyOfNodes->data,matrizDeCoordenadas) > cmax){
+            cmax = euclidianDistance(ultimoNoRota, copyOfNodes->data,matrizDeCoordenadas);
+        }
+        copyOfNodes = copyOfNodes->next;
+    }
+    //printf("Lista de nos com %d nos: \n", length(&listOfNodes));
+    //printList(&listOfNodes);
+    while (listOfNodes != NULL) {
+        if((euclidianDistance(listOfNodes->data, ultimoNoRota, matrizDeCoordenadas) >= cmin) && (euclidianDistance(listOfNodes->data, ultimoNoRota, matrizDeCoordenadas) <= (cmin + (ALFA*(cmax-cmin))))){
+            insertFirst(&rcl, listOfNodes->data);
+        }
+        listOfNodes = listOfNodes->next;
+
+    }
+    //printf("RCL com %d nos: ", length(&rcl));
+    //printList(&rcl);
+    //printf("\n");
+    return rcl;
+}
+
+int * TSPSGM(float ** matrizDeCoordenadas, struct node * listOfAllNodes){
+    int*rotaFinal;
+    double custoTotal = 100000000;
+    int contador=0;
+    int n = 100;
+    srand(time(NULL));
+    while (contador < n){
+        int* rota = (int *)malloc((nlinhas) * sizeof(int));
+        //printf("=================== RODADA %d =====================\n", contador+1);
+        struct node *nodeCopy = NULL;
+        struct node *temporaryCopy = listOfAllNodes;
+        for(int j=0; j<length(&listOfAllNodes);j++){
+            insertFirst(&nodeCopy, temporaryCopy->data);
+            temporaryCopy = temporaryCopy->next;
+        }
+        temporaryCopy = NULL;
+
+        int indexRota = 0, posRandom;
+        double custo = 0;
+
+        struct node * rcl = NULL;
+        //Adiciona o primeiro no de forma aleatoria;
+        int noAtual = ((rand() % nlinhas -1 )+1);
+        if(noAtual == 0){
+            noAtual = 1;
+        }
+        rota[indexRota] = noAtual;
+        indexRota++;
+        delete(&nodeCopy, noAtual);
+        while(length(&nodeCopy) != 0){
+            //printf("noAtual: %d\n", noAtual);
+            rcl = rclSet(matrizDeCoordenadas, nodeCopy, noAtual);
+            posRandom = ((rand() % length(&rcl)-1)+1);
+            for(int i = 0; i < posRandom; i++){
+                rcl = rcl->next;
+            }
+            rota[indexRota] = rcl->data;
+            custo = custo + euclidianDistance(rcl->data, rota[indexRota-1], matrizDeCoordenadas);
+            delete(&nodeCopy, rcl->data);
+            noAtual = rcl->data;
+            indexRota++;
+        }
+        custo = custo + euclidianDistance(rota[0], rota[indexRota-1], matrizDeCoordenadas);
+        //printf("O custo nesta rodada foi de: %f\n", custo);
+        if (custo < custoTotal){
+            rotaFinal = rota;
+            custoTotal = custo;
+        }
+        contador++;
+    }
+    printf("O custo total via Semi-Greedy MultiStart com n = %d e alfa = %f é de: %f\n",n,ALFA, custoTotal);
+    return rotaFinal;
+}
+
 void Tempo_CPU_Sistema(double *seg_CPU_total, double *seg_sistema_total)
 {
     long seg_CPU, seg_sistema, mseg_CPU, mseg_sistema;
@@ -330,7 +413,7 @@ int main() {
     double s_total_final;
 
     float ** matrizDeCoordenadas;
-    matrizDeCoordenadas = LeArquivo("/Users/gabrielduarte/CLionProjects/TSP/instanciasTSP/u2152.tsp");
+    matrizDeCoordenadas = LeArquivo("/Users/gabrielduarte/CLionProjects/TSP/instanciasTSP/lin105.tsp");
 
     struct node *listOfNodes = NULL;
     for(i=nlinhas; i > 0; i--){
@@ -340,7 +423,8 @@ int main() {
     Tempo_CPU_Sistema(&s_CPU_inicial, &s_total_inicial);
     //rotaVMP = TSPVMP(matrizDeCoordenadas, listOfNodes);
     //rotaVMP = TSPIMP(matrizDeCoordenadas, listOfNodes);
-    rotaVMP = TSPIMP_Randomizado(matrizDeCoordenadas, listOfNodes);
+    //rotaVMP = TSPIMP_Randomizado(matrizDeCoordenadas, listOfNodes);
+    rotaVMP = TSPSGM(matrizDeCoordenadas, listOfNodes);
     Tempo_CPU_Sistema(&s_CPU_final, &s_total_final);
 
     printf ("Tempo de CPU total = %f\n", s_CPU_final - s_CPU_inicial);
@@ -351,8 +435,19 @@ int main() {
         printf("(%d) ",rotaVMP[j]);
     }
     printf("]\n");
-
-
+/*
+    printf("Tira prova: \n");
+    int custo = 0;
+    for(int k=0; k < nlinhas; k++){
+        if(k < nlinhas - 1){
+            custo = custo + euclidianDistance(rotaVMP[k], rotaVMP[k+1], matrizDeCoordenadas);
+        }
+        else{
+            custo = custo + euclidianDistance(rotaVMP[0], rotaVMP[k], matrizDeCoordenadas);
+        }
+    }
+    printf("Custo real: %d", custo);
+*/
     LiberaMatriz(matrizDeCoordenadas, nlinhas);
     return 0;
 }
