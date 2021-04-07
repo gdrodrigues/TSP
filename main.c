@@ -8,7 +8,7 @@
 #include "linkedList.c"
 #define NCOLUNAS 2
 #define NINT(a) ((a) >= 0.0 ? (int)((a)+0.5) : (int)((a)-0.5))
-#define ALFA 0.5
+#define ALFA 0.3
 double euclidianDistance();
 int nlinhas;
 //int numeroArestas(int numNos);
@@ -130,6 +130,20 @@ double euclidianDistance (int no1, int no2, float ** matrizDeCoordenadas){
     double yd = matrizDeCoordenadas[no2-1][0] - matrizDeCoordenadas[no2-1][1];
     double dij = NINT(sqrt(xd*xd + yd*yd));
     return dij;
+}
+
+double verificaCusto(int * rota, float ** matrizDeCoordenadas){
+    double custo = 0;
+    for(int k=0; k < nlinhas; k++){
+        if(k < nlinhas - 1){
+            custo = custo + euclidianDistance(rota[k], rota[k+1], matrizDeCoordenadas);
+        }
+        else{
+            custo = custo + euclidianDistance(rota[0], rota[k], matrizDeCoordenadas);
+        }
+    }
+    printf("Custo real: %f\n", custo);
+    return custo;
 }
 
 // Utilizacao de LinkedList para controle da lista de Nós (muitas operacoes de remocao de um elemento).
@@ -387,6 +401,141 @@ int * TSPSGM(float ** matrizDeCoordenadas, struct node * listOfAllNodes){
     return rotaFinal;
 }
 
+int * TSPBestImproving(int * tour, double cost, float ** matrizDeCoordenadas){
+    int improvement = 1;
+    int size = nlinhas;
+    int * newTour = (int *)malloc((nlinhas) * sizeof(int)); //construcao de cada S'
+    int * tourCopy = (int *)malloc((nlinhas) * sizeof(int));// copia do tour original S
+    int * bestTour = (int *)malloc((nlinhas) * sizeof(int)); // melhor S' de S
+    double newCost;
+    for(int i = 0; i < nlinhas; i++){
+        tourCopy[i] = tour[i];
+    }
+    while(improvement != 0){
+        improvement = 0;
+        double bestCost = 100000000;
+        //Movimento 2opt
+        for (int i = 1; i < size - 1; i++) {
+            for (int k = i + 1; k < size - 1; k++) {
+                newCost = cost;
+                for (int c = 0; c <= i - 1; c++) {
+                    newTour[c] = tourCopy[c];
+                }
+                int dec = 0;
+                for (int c = i; c <= k; c++) {
+                    newTour[c] = tourCopy[k - dec];
+                    if (c == i) {
+                        newCost = newCost + euclidianDistance(tourCopy[c - 1], tourCopy[k],
+                                                              matrizDeCoordenadas); // add aresta C-G
+                        newCost = newCost - euclidianDistance(tourCopy[c - 1], tourCopy[c],
+                                                              matrizDeCoordenadas); //tira aresta C-D
+                    }
+                    dec++;
+                }
+
+                for (int c = k + 1; c < size; c++) {
+                    newTour[c] = tourCopy[c];
+                    if (c == k + 1) {
+                        newCost = newCost - euclidianDistance(tourCopy[c - 1], tourCopy[c],
+                                                              matrizDeCoordenadas); //tira aresta G-H
+                        newCost = newCost +
+                                  euclidianDistance(newTour[k], tourCopy[c], matrizDeCoordenadas); // add aresta D-H
+                    }
+                }
+                /*
+                printf("TOUR S' i = %d, k = %d, Cost = %f e newCost = %f\n",i, k, cost, newCost);
+                */
+
+                if(newCost < bestCost){
+                    for(int i = 0; i < nlinhas; i++){
+                        bestTour[i] = newTour[i];
+                    }
+                    bestCost = newCost;
+                }
+            }
+        }
+        //printf(" ============== MELHOR CUSTO ENCONTRADO NOS S' = %f =====================\n", bestCost);
+        if(bestCost < cost){
+            improvement = 1;
+            for(int i = 0; i < nlinhas; i++){
+                tourCopy[i] = bestTour[i];
+            }
+            cost = bestCost;
+        }
+    }
+    free(bestTour);
+    free(newTour);
+    printf("O novo custo, utilizando Busca Local - BestImproving é de: %f\n", cost);
+    return tourCopy;
+}
+
+int * TSPFirstImproving(int * tour, double cost, float ** matrizDeCoordenadas){
+    int improvement = 1;
+    int size = nlinhas;
+    int * newTour = (int *)malloc((nlinhas) * sizeof(int));
+    int * testTour = (int *)malloc((nlinhas) * sizeof(int));
+    double newCost, achei;
+    for(int i = 0; i < nlinhas; i++){
+        testTour[i] = tour[i];
+    }
+    while (improvement != 0){
+        improvement = 0;
+        for (int i = 1; i < size - 1; i++){
+            for(int k = i + 1; k < size - 1; k++){
+                achei = 0;
+                newCost = cost;
+                for (int c = 0; c <= i-1; c++){
+                    newTour[c] = testTour[c];
+                }
+                int dec = 0;
+                for (int c = i; c<=k; c++){
+                    newTour[c] = testTour[k-dec];
+                    if(c==i){
+                        newCost = newCost + euclidianDistance(testTour[c-1], testTour[k], matrizDeCoordenadas); // add aresta C-G
+                        newCost = newCost - euclidianDistance(testTour[c-1], testTour[c], matrizDeCoordenadas); //tira aresta C-D
+                    }
+                    dec++;
+                }
+
+                for(int c = k+1; c < size; c++){
+                    newTour[c] = testTour[c];
+                    if(c==k+1){
+                        newCost = newCost - euclidianDistance(testTour[c-1], testTour[c], matrizDeCoordenadas); //tira aresta G-H
+                        newCost = newCost + euclidianDistance(newTour[k], testTour[c], matrizDeCoordenadas); // add aresta D-H
+                    }
+                }
+                /*
+                printf("i = %d, k = %d, Cost = %f e newCost = %f\n",i, k, cost, newCost);
+                verificaCusto(newTour, matrizDeCoordenadas);
+                */
+                if (newCost < cost){
+                    for(int i = 0; i < nlinhas; i++){
+                        testTour[i] = newTour[i];
+                    }
+                    cost = newCost;
+                    improvement = 1;
+                    achei = 1;
+                    /*
+                    printf("========== Tour atualizado ============ :");
+                    printf("\n[ ");
+                    for(int j=0; j<nlinhas; j++){
+                        printf("(%d) ",testTour[j]);
+                    }
+                    printf("]\n");
+                    */
+                    break;
+                }
+            }
+            if(achei){
+                break;
+            }
+        }
+    }
+    printf("O novo custo, utilizando Busca Local - FirstImproving é de: %f\n", cost);
+
+    return testTour;
+}
+
 void Tempo_CPU_Sistema(double *seg_CPU_total, double *seg_sistema_total)
 {
     long seg_CPU, seg_sistema, mseg_CPU, mseg_sistema;
@@ -406,48 +555,46 @@ void Tempo_CPU_Sistema(double *seg_CPU_total, double *seg_sistema_total)
 
 int main() {
     int i,j;
-    int* rotaVMP;
+    int* rotaIMP;
+    int* rotaBL;
     double s_CPU_final;
     double s_CPU_inicial;
     double s_total_inicial;
     double s_total_final;
 
     float ** matrizDeCoordenadas;
-    matrizDeCoordenadas = LeArquivo("/Users/gabrielduarte/CLionProjects/TSP/instanciasTSP/lin105.tsp");
+    matrizDeCoordenadas = LeArquivo("/Users/gabrielduarte/CLionProjects/TSP/instanciasTSP/a280.tsp");
 
     struct node *listOfNodes = NULL;
     for(i=nlinhas; i > 0; i--){
         insertFirst(&listOfNodes, i);
     }
 
+    rotaIMP = TSPIMP(matrizDeCoordenadas, listOfNodes);
+    double custo = verificaCusto(rotaIMP, matrizDeCoordenadas);
     Tempo_CPU_Sistema(&s_CPU_inicial, &s_total_inicial);
     //rotaVMP = TSPVMP(matrizDeCoordenadas, listOfNodes);
-    //rotaVMP = TSPIMP(matrizDeCoordenadas, listOfNodes);
     //rotaVMP = TSPIMP_Randomizado(matrizDeCoordenadas, listOfNodes);
-    rotaVMP = TSPSGM(matrizDeCoordenadas, listOfNodes);
+    //rotaVMP = TSPSGM(matrizDeCoordenadas, listOfNodes);
+    //rotaBL = TSPFirstImproving(rotaIMP, custo, matrizDeCoordenadas);
+    rotaBL = TSPBestImproving(rotaIMP, custo, matrizDeCoordenadas);
     Tempo_CPU_Sistema(&s_CPU_final, &s_total_final);
 
     printf ("Tempo de CPU total = %f\n", s_CPU_final - s_CPU_inicial);
-
-    printf("Rota TSP:");
+    printf("Rota Heuristica:");
     printf("\n[ ");
     for(j=0; j<nlinhas; j++){
-        printf("(%d) ",rotaVMP[j]);
+        printf("(%d) ",rotaIMP[j]);
+    }
+
+    printf("]\n");
+    printf("Rota TSP Local Search:");
+    printf("\n[ ");
+    for(j=0; j<nlinhas; j++){
+        printf("(%d) ",rotaBL[j]);
     }
     printf("]\n");
-/*
-    printf("Tira prova: \n");
-    int custo = 0;
-    for(int k=0; k < nlinhas; k++){
-        if(k < nlinhas - 1){
-            custo = custo + euclidianDistance(rotaVMP[k], rotaVMP[k+1], matrizDeCoordenadas);
-        }
-        else{
-            custo = custo + euclidianDistance(rotaVMP[0], rotaVMP[k], matrizDeCoordenadas);
-        }
-    }
-    printf("Custo real: %d", custo);
-*/
+    verificaCusto(rotaBL, matrizDeCoordenadas);
     LiberaMatriz(matrizDeCoordenadas, nlinhas);
     return 0;
 }

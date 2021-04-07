@@ -3,6 +3,5 @@
 
 CMakeFiles/TSP.dir/linkedList.c.o: ../linkedList.c
 
-CMakeFiles/TSP.dir/main.c.o: ../linkedList.c
 CMakeFiles/TSP.dir/main.c.o: ../main.c
 
